@@ -1,25 +1,134 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Reproducible Research_Assignment1"
+author: "Piyush Verma"
+date: "`r Sys.Date()`"
+output: html_document
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
-## Loading and preprocessing the data
+## My First Assignement on R Markdown
 
-
-
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
+This is my 1st assignment on R Markdown document.Here we will perform some actions given by the instructor.
 
 
+### 1st task: Loading and preprocessing the data
 
-## Imputing missing values
+Here we will be loading and processing the data, if necessary.
 
 
 
-## Are there differences in activity patterns between weekdays and weekends?
+```{r Activity Monitoring}
+library(dplyr)
+library(ggplot2)
+monitoring_activity<- read.csv("~/R files/activity.csv",header = TRUE)
+monitoring_activity<- monitoring_activity[complete.cases(monitoring_activity),]
+monitoring_activity$date<-as.Date(monitoring_activity$date,"%Y-%m-%d")
+
+```
+
+### 2nd task: Histogram of the total number of steps taken each day
+
+Here we will plot the histogram of total number of steps taken each day with the help of plot function
+
+```{r Total steps each day, echo=TRUE}
+totalsteps<-tapply(monitoring_activity$steps,monitoring_activity$date,FUN = sum)
+hist(totalsteps)
+```
+
+### 3rd task: Mean and median number of steps taken each day
+
+Now we will calculate mean and median of number of steps each day.
+
+```{r Mean and Median of steps each day, echo=TRUE}
+meansteps<-mean(totalsteps)
+mediansteps<-median(totalsteps)
+cat("Mean number of steps: ", meansteps)
+cat("Median number of steps: ", mediansteps)
+
+```
+
+### 4th task: Time series plot of the average number of steps taken
+
+Now we will plot the daily activity pattern
+
+```{r Time series plot of the average number of steps taken, echo=TRUE}
+
+aggdata<- monitoring_activity %>% 
+  group_by(interval) %>% 
+  summarise(Avgsteps = mean(steps))
+ggplot(aggdata,aes(x=interval,y=Avgsteps))+geom_point()
+
+print("Max number of steps with the Interval")
+aggdata[which.max(aggdata$Avgsteps),]
+
+```
+
+### 5th task: Inputing missing values with Avgsteps of that particular interval 
+
+```{r Inputing missing values , echo=TRUE}
+
+monitoring_activity2<- read.csv("~/R files/activity.csv",header = TRUE)
+cat("total number of rows with NAs: ",sum(!complete.cases(monitoring_activity2)))
+
+
+for(i in 1:nrow(monitoring_activity2))
+    {
+
+if (is.na(monitoring_activity2[i,1])==TRUE)
+    {
+    intervalNA<- monitoring_activity2[i,3]
+    filterdata <- filter(aggdata,interval==intervalNA)
+    monitoring_activity2[i,1]<-filterdata$Avgsteps
+}
+}
+
+
+```
+
+### 6th task: Doing all calculations 
+
+```{r Doing all calculations again , echo=TRUE}
+
+totalsteps2<-tapply(monitoring_activity2$steps,monitoring_activity2$date,FUN = sum)
+hist(totalsteps2)
+meansteps2<-mean(totalsteps2)
+mediansteps2<-median(totalsteps2)
+cat("Mean number of steps after imputting NA values: ", meansteps2)
+cat("Median number of steps after imputting NA values: ", mediansteps2)
+
+```
+
+### 7th task: Classification of Date as Weekday/Weekend and Plotting of Avgsteps on Weekday vs Weekend
+
+```{r Classification of Day as Weekday/Weekend , echo=TRUE}
+monitoring_activity2$date<-as.Date(monitoring_activity2$date,"%Y-%m-%d")
+monitoring_activity3<- mutate(monitoring_activity2, Day=weekdays(date))
+
+Classification<-matrix(ncol = 1)
+Classification<-data.frame(Classification)
+
+for(i in 1:nrow(monitoring_activity3))
+    {
+
+if (monitoring_activity3[i,4]=="Saturday"|monitoring_activity3[i,4]=="Sunday")
+    {
+     Classification[i,] <- "Weekend"
+}
+    else{
+         Classification[i,] <- "Weekday"
+    }
+}
+
+monitoring_activity4<-mutate(monitoring_activity3,Classification)
+
+aggdata2<- monitoring_activity4 %>% 
+  group_by(Classification,interval) %>% 
+  summarise(Avgsteps = mean(steps))
+ggplot(aggdata2,aes(x=interval,y=Avgsteps,color=Classification))+geom_line()
+
+
+```
+
